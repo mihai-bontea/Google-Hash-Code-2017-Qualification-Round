@@ -33,17 +33,17 @@ public:
 class Data
 {
 public:
-    int nr_videos, nr_endpoints, nr_requests, nr_caches;
+    int nr_videos, nr_endpoints, nr_requests, nr_caches, cache_size;
     std::unique_ptr<int[]> video_sizes;
     std::vector<Endpoint> endpoints;
     std::vector<Request> requests;
 
     Data(const std::string& filename)
     {
-//        std::ifstream fin(filename);
-        InParser fin(filename.c_str());
+        std::ifstream fin(filename);
+//        InParser fin(filename.c_str());
 
-        fin >> nr_videos >> nr_endpoints >> nr_requests >> nr_caches;
+        fin >> nr_videos >> nr_endpoints >> nr_requests >> nr_caches >> cache_size;
         video_sizes = std::make_unique<int[]>(nr_videos);
 
         for (size_t index = 0; index < nr_videos; ++index)
