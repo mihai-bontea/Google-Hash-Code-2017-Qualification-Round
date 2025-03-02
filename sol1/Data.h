@@ -10,7 +10,7 @@ class Endpoint
 {
 public:
     int datacenter_latency;
-    std::map<int, int>& cache_to_latency;
+    std::map<int, int> cache_to_latency;
 
     Endpoint(int data_lat, std::map<int, int>& cache_lat): datacenter_latency{data_lat}, cache_to_latency{cache_lat}
     {
