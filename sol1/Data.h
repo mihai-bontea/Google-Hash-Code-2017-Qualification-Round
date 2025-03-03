@@ -3,29 +3,17 @@
 #include <memory>
 #include <fstream>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include "Parser.h"
 
 class Endpoint
 {
 public:
-    int datacenter_latency;
+    int id, datacenter_latency;
     std::map<int, int> cache_to_latency;
 
-    Endpoint(int data_lat, std::map<int, int>& cache_lat): datacenter_latency{data_lat}, cache_to_latency{cache_lat}
-    {
-    }
-};
-
-class Request
-{
-public:
-    int video_index, endpoint_index, nr_requests;
-
-    Request(int video_index, int endpoint_index, int nr_requests):
-        video_index(video_index),
-        endpoint_index(endpoint_index),
-        nr_requests(nr_requests)
+    Endpoint(int id, int data_lat, std::map<int, int>& cache_lat): id{id}, datacenter_latency{data_lat}, cache_to_latency{cache_lat}
     {
     }
 };
@@ -34,9 +22,10 @@ class Data
 {
 public:
     int nr_videos, nr_endpoints, nr_requests, nr_caches, cache_size;
-    std::unique_ptr<int[]> video_sizes;
+    std::vector<int> video_sizes;
     std::vector<Endpoint> endpoints;
-    std::vector<Request> requests;
+    std::unordered_map<int, std::vector<std::pair<int, int>>> endpoint_to_req;
+    std::unordered_map<int, std::vector<Endpoint>> cache_id_to_endpoints;
 
     Data(const std::string& filename)
     {
@@ -44,10 +33,13 @@ public:
 //        InParser fin(filename.c_str());
 
         fin >> nr_videos >> nr_endpoints >> nr_requests >> nr_caches >> cache_size;
-        video_sizes = std::make_unique<int[]>(nr_videos);
 
+        int video_size;
         for (size_t index = 0; index < nr_videos; ++index)
-            fin >> video_sizes[index];
+        {
+            fin >> video_size;
+            video_sizes.push_back(video_size);
+        }
 
         // Process endpoints
         for (size_t index = 0; index < nr_endpoints; ++index)
@@ -62,7 +54,17 @@ public:
                 fin >> cache_index >> latency;
                 cache_to_latency[cache_index] = latency;
             }
-            endpoints.emplace_back(datacenter_latency, cache_to_latency);
+            Endpoint endpoint = Endpoint((int)index, datacenter_latency, cache_to_latency);
+
+            endpoints.push_back(endpoint);
+
+            // Associating cache id to connected endpoints
+            for (auto [cache_id, _] : cache_to_latency)
+            {
+                if (cache_id_to_endpoints.find(cache_id) == cache_id_to_endpoints.end())
+                    cache_id_to_endpoints[cache_id] = {};
+                cache_id_to_endpoints[cache_id].push_back(endpoint);
+            }
         }
 
         // Process requests
@@ -71,7 +73,13 @@ public:
             int video_index, endpoint_index, nr_req;
             fin >> video_index >> endpoint_index >> nr_req;
 
-            requests.emplace_back(video_index, endpoint_index, nr_req);
+            auto it = endpoint_to_req.find(endpoint_index);
+            auto new_req = std::make_pair(video_index, nr_req);
+
+            if (it == endpoint_to_req.end())
+                endpoint_to_req[endpoint_index] = {new_req};
+            else
+                it->second.push_back(new_req);
         }
     }
 };
