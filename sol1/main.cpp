@@ -3,9 +3,16 @@
 
 #include "Data.h"
 #include <unordered_map>
+#include <unordered_set>
 #include "BS_thread_pool.hpp"
 
 using namespace std;
+
+struct pair_hash {
+    std::size_t operator()(const std::pair<int, int>& p) const {
+        return std::hash<int>{}(p.first) ^ (std::hash<int>{}(p.second) << 1);
+    }
+};
 
 vector<int> knapsack(int W, int n, const std::vector<int> &weights, unordered_map<int, int> &values)
 {
@@ -62,13 +69,47 @@ unordered_map<int, int> get_video_reqs_on_connected_endpoints(Data& data, int ca
     return video_id_to_nr_reqs;
 }
 
-vector<int> solve_for_cache(Data& data, int cache_id)
+vector<vector<int>> split_caches_into_connected_components(Data& data)
+{
+    unordered_set<int> visited_caches;
+    vector<vector<int>> result;
+    for (const auto& [cache_id, endpoints] : data.cache_id_to_endpoints)
+    {
+        auto it = visited_caches.find(cache_id);
+        if (it == visited_caches.end())
+        {
+            vector<int> connected_group;
+            for (const auto& endpoint : endpoints)
+            {
+                for (const auto& [cache_id_2, _] : endpoint.cache_to_latency)
+                {
+                    auto it_2 = visited_caches.find(cache_id_2);
+                    if (it_2 == visited_caches.end())
+                    {
+                        connected_group.push_back(cache_id_2);
+                        visited_caches.insert(cache_id_2);
+                    }
+                }
+            }
+            result.push_back(connected_group);
+        }
+    }
+    return result;
+}
+
+vector<int> solve_for_cache(Data& data, int cache_id, std::unordered_map<pair<int, int>, bool, pair_hash> &is_vid_req_satisfied_on_end)
 {
     auto video_id_to_nr_reqs = get_video_reqs_on_connected_endpoints(data, cache_id);
 
     auto videos_per_cache = knapsack(data.cache_size, video_id_to_nr_reqs.size(), data.video_sizes, video_id_to_nr_reqs);
 
 //        cout << "Placed " << videos_per_cache.size() << " videos on cache " << cache_id << endl;
+
+    for (const auto video : videos_per_cache)
+    {
+        const auto connected_endpoints = data.cache_id_to_endpoints[cache_id];
+
+    }
 
     return videos_per_cache;
 }
@@ -78,10 +119,11 @@ void solve(Data &data)
     BS::thread_pool pool(9);
     std::vector<std::future<std::vector<int>>> results;
 
+    std::unordered_map<pair<int, int>, bool, pair_hash> is_vid_req_satisfied_on_end;
     for (const auto& [cache_id, endpoints] : data.cache_id_to_endpoints)
     {
 //        results.push_back(pool.submit_task(solve_for_cache, data, cache_id));
-        results.push_back(pool.submit_task([&]() { return solve_for_cache(data, cache_id); }));
+        results.push_back(pool.submit_task([&]() { return solve_for_cache(data, cache_id, is_vid_req_satisfied_on_end); }));
     }
 
     // can be parallelized for caches with no common endpoints
@@ -91,7 +133,7 @@ void solve(Data &data)
         // W = data.cache_size
         // n = requests for videos on associated endpoints(combined, unique)
         // weights = video sizes
-        // values ~ value(video_index) = sum of req for connected endpoints
+        // values ~ value(video_index) = sum of req for connected endpointsd
         // would be good to update values in case of 2 or more caches connected to the same endpoints
         // (to not store the same videos multiple times for no reason)
         // probably something like: std::map< <endpoint, video>, bool> is_vid_provided_for_endpoint;
@@ -111,7 +153,9 @@ int main()
         Data data(in_prefix + input_file);
         cout << ". Input processed.\n";
 
-        solve(data);
+//        solve(data);
+        auto connected_comp = split_caches_into_connected_components(data);
+        cout << "We got " << connected_comp.size() << " connected components." << endl;
     }
 
     return 0;
