@@ -1,20 +1,13 @@
-#include <iostream>
 #include <array>
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "Data.h"
-#include "BS_thread_pool.hpp"
 
 using namespace std;
 
-struct pair_hash {
-    std::size_t operator()(const std::pair<int, int>& p) const {
-        return std::hash<int>{}(p.first) ^ (std::hash<int>{}(p.second) << 1);
-    }
-};
-
-vector<int> knapsack(int W, int n, const std::vector<int> &weights, unordered_map<int, int> &values)
+vector<int> knapsack(int W, int n, const vector<int> &weights, unordered_map<int, int> &values)
 {
     vector<vector<int>> dp(n + 1, vector<int>(W + 1, 0));
 
@@ -47,7 +40,9 @@ vector<int> knapsack(int W, int n, const std::vector<int> &weights, unordered_ma
     return selected_items;
 }
 
-unordered_map<int, int> get_video_reqs_on_connected_endpoints(Data& data, int cache_id)
+unordered_map<int, int> get_video_reqs_on_connected_endpoints(
+        Data& data, int cache_id,
+        const unordered_map<int, unordered_set<int>>& endpoint_to_satisfied_videos)
 {
     const auto& endpoints = data.cache_id_to_endpoints[cache_id];
 
@@ -57,64 +52,54 @@ unordered_map<int, int> get_video_reqs_on_connected_endpoints(Data& data, int ca
     {
         const auto& reqs = data.endpoint_to_req[endpoint.id];
 
+        auto endpoint_it = endpoint_to_satisfied_videos.find(endpoint.id);
         for (const auto& [video_id, nr_req] : reqs)
         {
+            int readjusted_nr_req = nr_req;
+            if (endpoint_it != endpoint_to_satisfied_videos.end())
+            {
+                auto video_it = endpoint_it->second.find(video_id);
+                if (video_it != endpoint_it->second.end())
+                    readjusted_nr_req /= 3;
+            }
+
             auto it = video_id_to_nr_reqs.find(video_id);
             if (it == video_id_to_nr_reqs.end())
-                video_id_to_nr_reqs[video_id] = nr_req;
+                video_id_to_nr_reqs[video_id] = readjusted_nr_req;
             else
-                it->second += nr_req;
+                it->second += readjusted_nr_req;
         }
     }
     return video_id_to_nr_reqs;
 }
 
-vector<int> solve_for_cache(Data& data, int cache_id, std::unordered_map<pair<int, int>, bool, pair_hash> &is_vid_req_satisfied_on_end)
-{
-    auto video_id_to_nr_reqs = get_video_reqs_on_connected_endpoints(data, cache_id);
-
-    auto videos_per_cache = knapsack(data.cache_size, video_id_to_nr_reqs.size(), data.video_sizes, video_id_to_nr_reqs);
-
-    for (const auto video : videos_per_cache)
-    {
-        const auto connected_endpoints = data.cache_id_to_endpoints[cache_id];
-    }
-
-    return videos_per_cache;
-}
-
 vector<pair<int, vector<int>>> solve(Data &data)
 {
-    BS::thread_pool pool(9);
-    std::vector<std::future<std::vector<int>>> results;
+    unordered_map<int, unordered_set<int>> endpoint_to_satisfied_videos;
+    vector<pair<int, vector<int>>> final_results;
 
-    std::unordered_map<pair<int, int>, bool, pair_hash> is_vid_req_satisfied_on_end;
     for (const auto& [cache_id, endpoints] : data.cache_id_to_endpoints)
     {
-        results.push_back(pool.submit_task([&]() { return solve_for_cache(data, cache_id, is_vid_req_satisfied_on_end); }));
-    }
+        auto video_id_to_nr_reqs = get_video_reqs_on_connected_endpoints(data, cache_id, endpoint_to_satisfied_videos);
+        auto videos_per_cache = knapsack(data.cache_size, (int)video_id_to_nr_reqs.size(), data.video_sizes, video_id_to_nr_reqs);
 
-    std::vector<pair<int, std::vector<int>>> final_results;
+        final_results.emplace_back(cache_id, videos_per_cache);
 
-    int index = 0;
-    for (const auto& [cache_id, _] : data.cache_id_to_endpoints)
-    {
-        auto result_per_cache = results[index].get();
-        if (!result_per_cache.empty())
+        for (const auto& endpoint : endpoints)
         {
-            final_results.emplace_back(cache_id, result_per_cache);
+            unordered_set<int> satisfied_videos;
+            satisfied_videos.insert(videos_per_cache.begin(), videos_per_cache.end());
+            endpoint_to_satisfied_videos[endpoint.id] = move(satisfied_videos);
         }
-        ++index;
     }
-
     return final_results;
 }
 
 int main()
 {
     const string in_prefix = "../../input_files/";
-    const string out_prefix = "../../output_files/sol1/";
-    const array<string, 4> input_files = { "me_at_the_zoo.in", "trending_today.in", "kittens.in.txt", "videos_worth_spreading.in"};
+    const string out_prefix = "../../output_files/sol2/";
+    const array<string, 4> input_files = { "me_at_the_zoo.in", "trending_today.in", "videos_worth_spreading.in", "kittens.in.txt"};
 
     for (const auto& input_file : input_files)
     {
