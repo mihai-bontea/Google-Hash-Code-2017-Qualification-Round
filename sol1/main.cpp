@@ -69,41 +69,11 @@ unordered_map<int, int> get_video_reqs_on_connected_endpoints(Data& data, int ca
     return video_id_to_nr_reqs;
 }
 
-vector<vector<int>> split_caches_into_connected_components(Data& data)
-{
-    unordered_set<int> visited_caches;
-    vector<vector<int>> result;
-    for (const auto& [cache_id, endpoints] : data.cache_id_to_endpoints)
-    {
-        auto it = visited_caches.find(cache_id);
-        if (it == visited_caches.end())
-        {
-            vector<int> connected_group;
-            for (const auto& endpoint : endpoints)
-            {
-                for (const auto& [cache_id_2, _] : endpoint.cache_to_latency)
-                {
-                    auto it_2 = visited_caches.find(cache_id_2);
-                    if (it_2 == visited_caches.end())
-                    {
-                        connected_group.push_back(cache_id_2);
-                        visited_caches.insert(cache_id_2);
-                    }
-                }
-            }
-            result.push_back(connected_group);
-        }
-    }
-    return result;
-}
-
 vector<int> solve_for_cache(Data& data, int cache_id, std::unordered_map<pair<int, int>, bool, pair_hash> &is_vid_req_satisfied_on_end)
 {
     auto video_id_to_nr_reqs = get_video_reqs_on_connected_endpoints(data, cache_id);
 
     auto videos_per_cache = knapsack(data.cache_size, video_id_to_nr_reqs.size(), data.video_sizes, video_id_to_nr_reqs);
-
-//        cout << "Placed " << videos_per_cache.size() << " videos on cache " << cache_id << endl;
 
     for (const auto video : videos_per_cache)
     {
@@ -114,7 +84,7 @@ vector<int> solve_for_cache(Data& data, int cache_id, std::unordered_map<pair<in
     return videos_per_cache;
 }
 
-void solve(Data &data)
+vector<pair<int, vector<int>>> solve(Data &data)
 {
     BS::thread_pool pool(9);
     std::vector<std::future<std::vector<int>>> results;
@@ -122,30 +92,30 @@ void solve(Data &data)
     std::unordered_map<pair<int, int>, bool, pair_hash> is_vid_req_satisfied_on_end;
     for (const auto& [cache_id, endpoints] : data.cache_id_to_endpoints)
     {
-//        results.push_back(pool.submit_task(solve_for_cache, data, cache_id));
         results.push_back(pool.submit_task([&]() { return solve_for_cache(data, cache_id, is_vid_req_satisfied_on_end); }));
     }
 
-    // can be parallelized for caches with no common endpoints
+    std::vector<pair<int, std::vector<int>>> final_results;
 
-    // Sort caches based on reach and latency? (maybe) se poate face si per sub-graf
-    // for cache_id in caches:
-        // W = data.cache_size
-        // n = requests for videos on associated endpoints(combined, unique)
-        // weights = video sizes
-        // values ~ value(video_index) = sum of req for connected endpointsd
-        // would be good to update values in case of 2 or more caches connected to the same endpoints
-        // (to not store the same videos multiple times for no reason)
-        // probably something like: std::map< <endpoint, video>, bool> is_vid_provided_for_endpoint;
-        // auto stored_videos = knapsack(W, n, weights, values);
+    int index = 0;
+    for (const auto& [cache_id, _] : data.cache_id_to_endpoints)
+    {
+        auto result_per_cache = results[index].get();
+        if (!result_per_cache.empty())
+        {
+            final_results.emplace_back(cache_id, result_per_cache);
+        }
+        ++index;
+    }
 
+    return final_results;
 }
 
 int main()
 {
     const string in_prefix = "../../input_files/";
     const string out_prefix = "../../output_files/sol1/";
-    const array<string, 4> input_files = { "trending_today.in", "kittens.in.txt", "videos_worth_spreading.in", "me_at_the_zoo.in" };
+    const array<string, 4> input_files = { "me_at_the_zoo.in", "trending_today.in", "kittens.in.txt", "videos_worth_spreading.in"};
 
     for (const auto& input_file : input_files)
     {
@@ -153,10 +123,10 @@ int main()
         Data data(in_prefix + input_file);
         cout << ". Input processed.\n";
 
-//        solve(data);
-        auto connected_comp = split_caches_into_connected_components(data);
-        cout << "We got " << connected_comp.size() << " connected components." << endl;
-    }
+        auto final_results = solve(data);
 
+        const string out_file = out_prefix + input_file.substr(0, (input_file.find('.'))) + ".out";
+        data.write_to_file(out_file, final_results);
+    }
     return 0;
 }

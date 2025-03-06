@@ -82,4 +82,24 @@ public:
                 it->second.push_back(new_req);
         }
     }
+
+    void write_to_file(const std::string& filename, const std::vector<std::pair<int, std::vector<int>>>& final_results)
+    {
+        std::ofstream fout(filename);
+
+        std::cout << filename << " ";
+        std::cout << final_results.size() << std::endl;
+
+        fout << final_results.size() << '\n';
+
+        for (const auto& [cache_id, videos] : final_results)
+        {
+            fout << cache_id << " ";
+            for (const auto& video : videos)
+            {
+                fout << video << " ";
+            }
+            fout << '\n';
+        }
+    }
 };
