@@ -6,4 +6,8 @@ Score for file 'output_files/sol1/kittens.out' is '360610009'
 Score for file 'output_files/sol1/videos_worth_spreading.out' is '2472533846'
 Final score is '3168642005'
 
-Score for file 'output_files/sol2/me_at_the_zoo.out' is 209957360
+Score for file 'output_files/sol2/me_at_the_zoo.out' is 215114400
+Score for file 'output_files/sol2/trending_today.out' is 221155320
+The file 'output_files/sol2/kittens.out' does not exist => 0 points.
+Score for file 'output_files/sol2/videos_worth_spreading.out' is 2608485968
+Final score is 3044755688

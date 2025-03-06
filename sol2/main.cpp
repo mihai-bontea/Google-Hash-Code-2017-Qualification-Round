@@ -60,7 +60,7 @@ unordered_map<int, int> get_video_reqs_on_connected_endpoints(
             {
                 auto video_it = endpoint_it->second.find(video_id);
                 if (video_it != endpoint_it->second.end())
-                    readjusted_nr_req /= 3;
+                    readjusted_nr_req /= 10;
             }
 
             auto it = video_id_to_nr_reqs.find(video_id);
