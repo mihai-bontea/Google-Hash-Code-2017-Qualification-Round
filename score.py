@@ -7,6 +7,24 @@ def vids_fit_on_caches(cache_size, vids_per_cache, video_sizes):
     return all(sum(video_sizes[video_id] for video_id in vids_per_cache[cache_id]) <= cache_size 
                for cache_id in vids_per_cache)
 
+def compute_score(vids_per_cache_solution, endpoints, requests):
+    score = 0
+
+    for vid_idx, end_idx, nr_req in requests:
+        datacenter_latency, cache_to_lat = endpoints[end_idx]
+        
+        valid_caches = [(cache_id, latency) for cache_id, latency in cache_to_lat.items() 
+                        if vid_idx in vids_per_cache_solution[cache_id]]
+        
+        if valid_caches:
+            best_cache_id, best_latency = min(valid_caches, key=lambda x: x[1])
+            score += nr_req * (datacenter_latency - best_latency)
+    
+    return score * 1000 // len(requests)
+            
+
+
+
 
 for filename in input_files:
     full_path_in = in_prefix + filename
@@ -38,14 +56,11 @@ for filename in input_files:
                     print(f"Invalid output for file '{full_path_out}', videos don't fit on cache!")
                     continue
 
-
-
-                    
-
-
-
-
+                file_score = compute_score(vids_per_cache_solution, endpoints, requests)
+                total_score += file_score
+                print(f"Score for file '{full_path_out}' is '{file_score}'")
 
     except FileNotFoundError:
         print(f"The file '{full_path_out}' does not exist => 0 points.")
 
+print(f"Final score is '{total_score}'")
