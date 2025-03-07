@@ -1,6 +1,10 @@
-# Google Hash Code 2017 Qualification Round
+# Google Hash Code 2017 Qualification Round (Video Streaming)
+
+![Image](https://github.com/user-attachments/assets/6a9e4a85-c608-4b6e-a6c7-cf3f10a965ee)
 
 ## Solution 1
+
+The task of choosing how to place videos on the caches (with limited size) such that the average waiting time is minimal immediately hints towards the **0/1 Knapsack Problem**. For a specific cache, each video has a certain **value**(sum of number of requests on the connected endpoints), and a specific **weight**(video size). A quick and 'dirty' solution is to apply the knapsack algorithm for each cache, without minding repetitions. This is also easy to parallelize with a thread pool, greatly increasing processing speed.
 
 | File Name                        | Views   |
 |----------------------------------|--------:|
