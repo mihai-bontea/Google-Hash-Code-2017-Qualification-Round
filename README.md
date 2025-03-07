@@ -8,13 +8,13 @@ The task of choosing how to place videos on the caches (with limited size) such 
 
 This solution is in the 63rd percentile of all submissions.
 
-| File Name                        | Views   |
+| File Name                        | Score   |
 |----------------------------------|--------:|
 | me_at_the_zoo.out               | 387043  |
 | trending_today.out              | 25805   |
 | kittens.out                     | 72104   |
 | videos_worth_spreading.out      | 494816  |
-| final score                     | 979768  |
+| **Final**                       | 979768  |
 
 
 ## Solution 2
@@ -26,12 +26,15 @@ Hence, we need to keep track of which videos are already provided to each endpoi
 Now, from the point of view of the knapsack algorithm, a video's value is no longer just the sum of its requests on the connected endpoints. Whether it is already provided by another cache is also taken into account. The difficulty now lies in **picking a good formula** for determining a video's value.
 
 
-| File Name                        | Views   |
+value = nr_req * (L<sub>D</sub> - L<sub>cache</sub>)
+value = max(0, value - nr_req * (L<sub>D</sub> - L<sub>old</sub>)) (if video is already provided by another cache)
+
+| File Name                        | Score   |
 |----------------------------------|--------:|
 | me_at_the_zoo.out               | 405733  |
 | trending_today.out              | 499999  |
 | kittens.out                     | 959981  |
 | videos_worth_spreading.out      | 433928  |
-| final score                     | 2299641 |
+| **Final**                       | 2299641 |
 
 
