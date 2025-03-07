@@ -9,7 +9,7 @@ using namespace std;
 
 vector<int> knapsack(int W, int n, const vector<int> &weights, unordered_map<int, int> &values)
 {
-    vector<vector<int>> dp(n + 1, vector<int>(W + 1, 0));
+    vector<vector<unsigned long long>> dp(n + 1, vector<unsigned long long>(W + 1, 0));
 
     for (int i = 1; i <= n; i++)
     {
@@ -52,17 +52,23 @@ unordered_map<int, int> get_video_values_on_connected_endpoints(
 
         for (const auto& [video_id, nr_req] : reqs)
         {
-            int value = nr_req;
+            const int datac_latency = data.endpoints[endpoint_id].datacenter_latency;
+            const int new_latency = data.endpoints[endpoint_id].cache_to_latency[cache_id];
+
+            int value = nr_req *  (datac_latency - new_latency);
 
             // If video on this endpoint is already satisfied by another cache, update its value
             // based on the differences between cache latencies
             auto sat_video_it = endpoint_to_satisfied_videos[endpoint_id].find(video_id);
             if (sat_video_it != endpoint_to_satisfied_videos[endpoint_id].end())
             {
-                const int new_latency = data.endpoints[endpoint_id].cache_to_latency[cache_id];
+//                const int new_latency = data.endpoints[endpoint_id].cache_to_latency[cache_id];
                 const int old_latency = sat_video_it->second;
 
-                value = (old_latency <= new_latency)? 0 : max((nr_req - old_latency), 0);
+                if (new_latency < old_latency)
+                    value -= nr_req * (datac_latency - old_latency);
+                else
+                    value = 0;
             }
 
             auto it = video_id_to_value.find(video_id);
