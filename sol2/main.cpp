@@ -40,37 +40,39 @@ vector<int> knapsack(int W, int n, const vector<int> &weights, unordered_map<int
     return selected_items;
 }
 
-unordered_map<int, int> get_video_reqs_on_connected_endpoints(
+unordered_map<int, int> get_video_values_on_connected_endpoints(
         Data& data, int cache_id,
         vector<unordered_map<int, int>>& endpoint_to_satisfied_videos)
 {
-    const auto& endpoint_ids = data.cache_id_to_endpoint_ids[cache_id];
+    unordered_map<int, int> video_id_to_value;
 
-    unordered_map<int, int> video_id_to_nr_reqs;
-
-    for (const auto& endpoint_id : endpoint_ids)
+    for (const auto& endpoint_id : data.cache_id_to_endpoint_ids[cache_id])
     {
         const auto& reqs = data.endpoints[endpoint_id].vid_to_nr_req;
 
-//        auto endpoint_it = endpoint_to_satisfied_videos.find(endpoint.id);
         for (const auto& [video_id, nr_req] : reqs)
         {
-            int readjusted_nr_req = nr_req;
+            int value = nr_req;
 
-            // TODO
-            auto video_it = endpoint_to_satisfied_videos[endpoint_id].find(video_id);
-            if (video_it != endpoint_to_satisfied_videos[endpoint_id].end())
-                readjusted_nr_req /= 10;
+            // If video on this endpoint is already satisfied by another cache, update its value
+            // based on the differences between cache latencies
+            auto sat_video_it = endpoint_to_satisfied_videos[endpoint_id].find(video_id);
+            if (sat_video_it != endpoint_to_satisfied_videos[endpoint_id].end())
+            {
+                const int new_latency = data.endpoints[endpoint_id].cache_to_latency[cache_id];
+                const int old_latency = sat_video_it->second;
 
+                value = (old_latency <= new_latency)? 0 : max((nr_req - old_latency), 0);
+            }
 
-            auto it = video_id_to_nr_reqs.find(video_id);
-            if (it == video_id_to_nr_reqs.end())
-                video_id_to_nr_reqs[video_id] = readjusted_nr_req;
+            auto it = video_id_to_value.find(video_id);
+            if (it == video_id_to_value.end())
+                video_id_to_value[video_id] = value;
             else
-                it->second += readjusted_nr_req;
+                it->second += value;
         }
     }
-    return video_id_to_nr_reqs;
+    return video_id_to_value;
 }
 
 vector<pair<int, vector<int>>> solve(Data &data)
@@ -82,22 +84,28 @@ vector<pair<int, vector<int>>> solve(Data &data)
 
     for (int cache_id = 0; cache_id < data.nr_caches; ++cache_id)
     {
-        auto video_id_to_nr_reqs = get_video_reqs_on_connected_endpoints(data, cache_id, endpoint_to_satisfied_videos);
+        auto video_id_to_nr_reqs = get_video_values_on_connected_endpoints(data, cache_id, endpoint_to_satisfied_videos);
         auto videos_per_cache = knapsack(data.cache_size, (int)video_id_to_nr_reqs.size(), data.video_sizes, video_id_to_nr_reqs);
 
         final_results.emplace_back(cache_id, videos_per_cache);
 
+        // Updating the best latency for each video on each endpoint
         for (const auto& endpoint_id : data.cache_id_to_endpoint_ids[cache_id])
         {
             const int new_latency = data.endpoints[endpoint_id].cache_to_latency[cache_id];
-            for (const auto& video : videos_per_cache)
+            for (const auto& video_id : videos_per_cache)
             {
-
-
-
+                // There is a req for video_id on endpoint
+                if (data.endpoints[endpoint_id].vid_to_nr_req.count(video_id))
+                {
+                    auto sat_video_it = endpoint_to_satisfied_videos[endpoint_id].find(video_id);
+                    // If video not satisfied yet, or satisfied, but with higher latency, update
+                    if (sat_video_it == endpoint_to_satisfied_videos[endpoint_id].end() || sat_video_it->second > new_latency)
+                    {
+                        endpoint_to_satisfied_videos[endpoint_id][video_id] = new_latency;
+                    }
+                }
             }
-
-//            endpoint_to_satisfied_videos[endpoint.id] = move(satisfied_videos);
         }
     }
     return final_results;
