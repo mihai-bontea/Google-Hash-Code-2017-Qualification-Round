@@ -25,8 +25,10 @@ Hence, we need to keep track of which videos are already provided to each endpoi
 
 Now, from the point of view of the knapsack algorithm, a video's value is no longer just the sum of its requests on the connected endpoints. Whether it is already provided by another cache is also taken into account. The difficulty now lies in **picking a good formula** for determining a video's value.
 
+The formula chosen is:
 
-value = nr_req * (L<sub>D</sub> - L<sub>cache</sub>)
+value = nr_req * (L<sub>D</sub> - L<sub>cache</sub>), then
+
 value = max(0, value - nr_req * (L<sub>D</sub> - L<sub>old</sub>)) (if video is already provided by another cache)
 
 | File Name                        | Score   |
