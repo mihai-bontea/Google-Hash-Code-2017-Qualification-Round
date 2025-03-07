@@ -44,24 +44,24 @@ unordered_map<int, int> get_video_reqs_on_connected_endpoints(
         Data& data, int cache_id,
         vector<unordered_map<int, int>>& endpoint_to_satisfied_videos)
 {
-    const auto& endpoints = data.cache_id_to_endpoints[cache_id];
+    const auto& endpoint_ids = data.cache_id_to_endpoint_ids[cache_id];
 
     unordered_map<int, int> video_id_to_nr_reqs;
 
-    for (const auto& endpoint : endpoints)
+    for (const auto& endpoint_id : endpoint_ids)
     {
-        const auto& reqs = data.endpoint_to_req[endpoint.id];
+        const auto& reqs = data.endpoints[endpoint_id].vid_to_nr_req;
 
-        auto endpoint_it = endpoint_to_satisfied_videos.find(endpoint.id);
+//        auto endpoint_it = endpoint_to_satisfied_videos.find(endpoint.id);
         for (const auto& [video_id, nr_req] : reqs)
         {
             int readjusted_nr_req = nr_req;
-            if (endpoint_it != endpoint_to_satisfied_videos.end())
-            {
-                auto video_it = endpoint_it->second.find(video_id);
-                if (video_it != endpoint_it->second.end())
-                    readjusted_nr_req /= 10;
-            }
+
+            // TODO
+            auto video_it = endpoint_to_satisfied_videos[endpoint_id].find(video_id);
+            if (video_it != endpoint_to_satisfied_videos[endpoint_id].end())
+                readjusted_nr_req /= 10;
+
 
             auto it = video_id_to_nr_reqs.find(video_id);
             if (it == video_id_to_nr_reqs.end())
@@ -80,26 +80,24 @@ vector<pair<int, vector<int>>> solve(Data &data)
 
     vector<pair<int, vector<int>>> final_results;
 
-    for (const auto& [cache_id, endpoints] : data.cache_id_to_endpoints)
+    for (int cache_id = 0; cache_id < data.nr_caches; ++cache_id)
     {
         auto video_id_to_nr_reqs = get_video_reqs_on_connected_endpoints(data, cache_id, endpoint_to_satisfied_videos);
         auto videos_per_cache = knapsack(data.cache_size, (int)video_id_to_nr_reqs.size(), data.video_sizes, video_id_to_nr_reqs);
 
         final_results.emplace_back(cache_id, videos_per_cache);
 
-        for (const auto& endpoint : endpoints)
+        for (const auto& endpoint_id : data.cache_id_to_endpoint_ids[cache_id])
         {
-            const int new_latency = data.endpoints[endpoint.id].cache_to_latency[cache_id];
+            const int new_latency = data.endpoints[endpoint_id].cache_to_latency[cache_id];
             for (const auto& video : videos_per_cache)
             {
 
 
 
-
-
             }
 
-            endpoint_to_satisfied_videos[endpoint.id] = move(satisfied_videos);
+//            endpoint_to_satisfied_videos[endpoint.id] = move(satisfied_videos);
         }
     }
     return final_results;

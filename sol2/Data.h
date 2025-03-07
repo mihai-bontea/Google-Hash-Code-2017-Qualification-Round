@@ -12,6 +12,7 @@ class Endpoint
 public:
     int id, datacenter_latency;
     std::map<int, int> cache_to_latency;
+    std::unordered_map<int, int> vid_to_nr_req;
 
     Endpoint(int id, int data_lat, std::map<int, int>& cache_lat): id{id}, datacenter_latency{data_lat}, cache_to_latency{cache_lat}
     {
@@ -24,8 +25,7 @@ public:
     int nr_videos, nr_endpoints, nr_requests, nr_caches, cache_size;
     std::vector<int> video_sizes;
     std::vector<Endpoint> endpoints;
-    std::vector<std::vector<std::pair<int, int>>> endpoint_to_req;
-    std::unordered_map<int, std::vector<Endpoint>> cache_id_to_endpoints;
+    std::vector<std::vector<int>> cache_id_to_endpoint_ids;
 
     Data(const std::string& filename)
     {
@@ -58,23 +58,21 @@ public:
 
             endpoints.push_back(endpoint);
 
-            // Associating cache id to connected endpoints
+            // Associating cache id to connected endpoint ids
+            cache_id_to_endpoint_ids.resize(nr_caches);
             for (auto [cache_id, _] : cache_to_latency)
             {
-                if (cache_id_to_endpoints.find(cache_id) == cache_id_to_endpoints.end())
-                    cache_id_to_endpoints[cache_id] = {};
-                cache_id_to_endpoints[cache_id].push_back(endpoint);
+                cache_id_to_endpoint_ids[cache_id].push_back(endpoint.id);
             }
         }
 
         // Process requests
-        endpoint_to_req.resize(nr_endpoints);
         for (size_t index = 0; index < nr_requests; ++index)
         {
             int video_index, endpoint_index, nr_req;
             fin >> video_index >> endpoint_index >> nr_req;
 
-            endpoint_to_req[endpoint_index].emplace_back(video_index, nr_req);
+            endpoints[endpoint_index].vid_to_nr_req[video_index] = nr_req;
         }
     }
 
