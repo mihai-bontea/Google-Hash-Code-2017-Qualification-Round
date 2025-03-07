@@ -10,6 +10,7 @@ def vids_fit_on_caches(cache_size, vids_per_cache, video_sizes):
 def compute_score(vids_per_cache_solution, endpoints, requests):
     score = 0
 
+    total_requests = sum(nr_req for _, _, nr_req in requests)
     for vid_idx, end_idx, nr_req in requests:
         datacenter_latency, cache_to_lat = endpoints[end_idx]
         
@@ -20,7 +21,7 @@ def compute_score(vids_per_cache_solution, endpoints, requests):
             best_cache_id, best_latency = min(valid_caches, key=lambda x: x[1])
             score += nr_req * (datacenter_latency - best_latency)
     
-    return score * 1000 // len(requests)
+    return score * 1000 // total_requests
 
 for filename in input_files:
     full_path_in = in_prefix + filename
