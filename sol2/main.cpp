@@ -1,7 +1,6 @@
 #include <array>
 #include <iostream>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "Data.h"
 
@@ -62,7 +61,6 @@ unordered_map<int, int> get_video_values_on_connected_endpoints(
             auto sat_video_it = endpoint_to_satisfied_videos[endpoint_id].find(video_id);
             if (sat_video_it != endpoint_to_satisfied_videos[endpoint_id].end())
             {
-//                const int new_latency = data.endpoints[endpoint_id].cache_to_latency[cache_id];
                 const int old_latency = sat_video_it->second;
 
                 if (new_latency < old_latency)
