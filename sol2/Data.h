@@ -24,7 +24,7 @@ public:
     int nr_videos, nr_endpoints, nr_requests, nr_caches, cache_size;
     std::vector<int> video_sizes;
     std::vector<Endpoint> endpoints;
-    std::unordered_map<int, std::vector<std::pair<int, int>>> endpoint_to_req;
+    std::vector<std::vector<std::pair<int, int>>> endpoint_to_req;
     std::unordered_map<int, std::vector<Endpoint>> cache_id_to_endpoints;
 
     Data(const std::string& filename)
@@ -68,18 +68,13 @@ public:
         }
 
         // Process requests
+        endpoint_to_req.resize(nr_endpoints);
         for (size_t index = 0; index < nr_requests; ++index)
         {
             int video_index, endpoint_index, nr_req;
             fin >> video_index >> endpoint_index >> nr_req;
 
-            auto it = endpoint_to_req.find(endpoint_index);
-            auto new_req = std::make_pair(video_index, nr_req);
-
-            if (it == endpoint_to_req.end())
-                endpoint_to_req[endpoint_index] = {new_req};
-            else
-                it->second.push_back(new_req);
+            endpoint_to_req[endpoint_index].emplace_back(video_index, nr_req);
         }
     }
 

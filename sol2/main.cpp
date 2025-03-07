@@ -42,7 +42,7 @@ vector<int> knapsack(int W, int n, const vector<int> &weights, unordered_map<int
 
 unordered_map<int, int> get_video_reqs_on_connected_endpoints(
         Data& data, int cache_id,
-        const unordered_map<int, unordered_set<int>>& endpoint_to_satisfied_videos)
+        vector<unordered_map<int, int>>& endpoint_to_satisfied_videos)
 {
     const auto& endpoints = data.cache_id_to_endpoints[cache_id];
 
@@ -75,7 +75,9 @@ unordered_map<int, int> get_video_reqs_on_connected_endpoints(
 
 vector<pair<int, vector<int>>> solve(Data &data)
 {
-    unordered_map<int, unordered_set<int>> endpoint_to_satisfied_videos;
+    // {endpoint_id : map{video : latency}}
+    vector<unordered_map<int, int>> endpoint_to_satisfied_videos(data.nr_endpoints);
+
     vector<pair<int, vector<int>>> final_results;
 
     for (const auto& [cache_id, endpoints] : data.cache_id_to_endpoints)
@@ -87,8 +89,16 @@ vector<pair<int, vector<int>>> solve(Data &data)
 
         for (const auto& endpoint : endpoints)
         {
-            unordered_set<int> satisfied_videos;
-            satisfied_videos.insert(videos_per_cache.begin(), videos_per_cache.end());
+            const int new_latency = data.endpoints[endpoint.id].cache_to_latency[cache_id];
+            for (const auto& video : videos_per_cache)
+            {
+
+
+
+
+
+            }
+
             endpoint_to_satisfied_videos[endpoint.id] = move(satisfied_videos);
         }
     }
