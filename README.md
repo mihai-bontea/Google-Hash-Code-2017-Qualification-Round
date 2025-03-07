@@ -6,6 +6,8 @@
 
 The task of choosing how to place videos on the caches (with limited size) such that the average waiting time is minimal immediately hints towards the **0/1 Knapsack Problem**. For a specific cache, each video has a certain **value**(sum of number of requests on the connected endpoints), and a specific **weight**(video size). A quick and 'dirty' solution is to apply the knapsack algorithm for each cache, without minding repetitions. This is also easy to parallelize with a thread pool, greatly increasing processing speed.
 
+This solution is in the 63rd percentile of all submissions.
+
 | File Name                        | Views   |
 |----------------------------------|--------:|
 | me_at_the_zoo.out               | 387043  |
@@ -16,6 +18,12 @@ The task of choosing how to place videos on the caches (with limited size) such 
 
 
 ## Solution 2
+
+Unsurprisingly, solution 1 doesn't score that well: **an endpoint can be serviced by multiple caches**(In fact this is the norm, a quick connected components check shows only 1 to 16 independent components on all datasets). This means that if an endpoint is serviced by 2 caches C<sub>i</sub> and C<sub>j</sub>, and a video is already placed on C<sub>i</sub>, whether it is worth to also place it on C<sub>j</sub> depends on the difference between their latencies to that specific endpoint.
+
+Hence, we need to keep track of which videos are already provided to each endpoint, and with what latency. This, combined with the fact that the knapsack algorithm often "changes its mind"(gives up on a previously selected object for a better one), means that we can no longer parallelize it like in solution 1.
+
+Now, from the point of view of the knapsack algorithm, a video's value is no longer just the sum of its requests on the connected endpoints. Whether it is already provided by another cache is also taken into account. The difficulty now lies in **picking a good formula** for determining a video's value.
 
 
 | File Name                        | Views   |
