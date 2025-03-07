@@ -39,4 +39,4 @@ value = max(0, value - nr_req * (L<sub>D</sub> - L<sub>old</sub>)) (if video is 
 | videos_worth_spreading.out      | 433928  |
 | **Final**                       | 2299641 |
 
-
+This solution is in the 10th percentile of all submissions.
