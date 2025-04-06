@@ -2,6 +2,12 @@
 
 ![Image](https://github.com/user-attachments/assets/6a9e4a85-c608-4b6e-a6c7-cf3f10a965ee)
 
+>Have you ever wondered what happens behind the scenes when you watch a YouTube video? As more and more people watch online videos (and as the size of these videos increases), it is critical that video-serving infrastructure is optimized to handle requests reliably and quickly.
+>This typically involves putting in place cache servers, which store copies of popular videos. When a user request for a particular video arrives, it can be handled by a cache server close to the user, rather than by a remote data center thousands of kilometers away.
+>But how should you decide which videos to put in which cache servers?
+
+>**Given a description of cache servers, network endpoints and videos, along with predicted requests for individual videos, decide which videos to put in which cache server in order to minimize the average waiting time for all requests.**
+
 ## Solution 1
 
 The task of choosing how to place videos on the caches (with limited size) such that the average waiting time is minimal immediately hints towards the **0/1 Knapsack Problem**. For a specific cache, each video has a certain **value**(sum of number of requests on the connected endpoints), and a specific **weight**(video size). A quick and 'dirty' solution is to apply the knapsack algorithm for each cache, without minding repetitions. This is also easy to parallelize with a thread pool, greatly increasing processing speed.
